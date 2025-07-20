@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -49,7 +49,7 @@ class Conversation(BaseModel):
     id: int
     title: Optional[str] = None
     messages: List[Message]
-    user_id: str
+    user_id: Union[str, int]  # Accept both string and integer user IDs
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -141,6 +141,9 @@ async def save_conversation(conversation: Conversation):
             "user_id": conversation.user_id
         })
         
+        # Convert user_id to string for consistency
+        user_id_str = str(conversation.user_id)
+        
         # Create point
         point = PointStruct(
             id=conversation.id,
@@ -149,7 +152,7 @@ async def save_conversation(conversation: Conversation):
                 "id": conversation.id,
                 "title": conversation.title,
                 "messages": [msg.dict() for msg in conversation.messages],
-                "user_id": conversation.user_id,
+                "user_id": user_id_str,
                 "created_at": conversation.created_at,
                 "updated_at": conversation.updated_at
             }
@@ -165,7 +168,7 @@ async def save_conversation(conversation: Conversation):
             "id": conversation.id,
             "title": conversation.title,
             "messages": [msg.dict() for msg in conversation.messages],
-            "user_id": conversation.user_id,
+            "user_id": user_id_str,
             "created_at": conversation.created_at,
             "updated_at": conversation.updated_at
         }
@@ -173,7 +176,7 @@ async def save_conversation(conversation: Conversation):
         raise HTTPException(status_code=500, detail=f"Error saving conversation: {str(e)}")
 
 @app.get("/conversations/{user_id}")
-async def get_conversations(user_id: str, limit: int = 50):
+async def get_conversations(user_id: Union[str, int], limit: int = 50):
     """Get all conversations for a user"""
     try:
         # Get all points from collection
@@ -184,10 +187,13 @@ async def get_conversations(user_id: str, limit: int = 50):
             with_vectors=False
         )[0]
         
+        # Convert user_id to string for comparison
+        user_id_str = str(user_id)
+        
         # Filter by user_id
         user_conversations = [
             point.payload for point in points 
-            if point.payload.get("user_id") == user_id
+            if point.payload.get("user_id") == user_id_str
         ]
         
         # Sort by updated_at
@@ -201,7 +207,7 @@ async def get_conversations(user_id: str, limit: int = 50):
         raise HTTPException(status_code=500, detail=f"Error getting conversations: {str(e)}")
 
 @app.get("/conversations/{user_id}/{conversation_id}")
-async def get_conversation(user_id: str, conversation_id: int):
+async def get_conversation(user_id: Union[str, int], conversation_id: int):
     """Get a specific conversation"""
     try:
         point = client.retrieve(
@@ -210,7 +216,8 @@ async def get_conversation(user_id: str, conversation_id: int):
             with_payload=True
         )
         
-        if not point or point[0].payload.get("user_id") != user_id:
+        user_id_str = str(user_id)
+        if not point or point[0].payload.get("user_id") != user_id_str:
             raise HTTPException(status_code=404, detail="Conversation not found")
         
         return point[0].payload
@@ -218,7 +225,7 @@ async def get_conversation(user_id: str, conversation_id: int):
         raise HTTPException(status_code=500, detail=f"Error getting conversation: {str(e)}")
 
 @app.put("/conversations/{user_id}/{conversation_id}")
-async def update_conversation(user_id: str, conversation_id: int, update: ConversationUpdate):
+async def update_conversation(user_id: Union[str, int], conversation_id: int, update: ConversationUpdate):
     """Update an existing conversation"""
     try:
         # Get existing conversation
@@ -228,7 +235,8 @@ async def update_conversation(user_id: str, conversation_id: int, update: Conver
             with_payload=True
         )
         
-        if not point or point[0].payload.get("user_id") != user_id:
+        user_id_str = str(user_id)
+        if not point or point[0].payload.get("user_id") != user_id_str:
             raise HTTPException(status_code=404, detail="Conversation not found")
         
         existing = point[0].payload
@@ -260,7 +268,7 @@ async def update_conversation(user_id: str, conversation_id: int, update: Conver
         raise HTTPException(status_code=500, detail=f"Error updating conversation: {str(e)}")
 
 @app.delete("/conversations/{user_id}/{conversation_id}")
-async def delete_conversation(user_id: str, conversation_id: int):
+async def delete_conversation(user_id: Union[str, int], conversation_id: int):
     """Delete a conversation"""
     try:
         # Check if conversation exists and belongs to user
@@ -270,7 +278,8 @@ async def delete_conversation(user_id: str, conversation_id: int):
             with_payload=True
         )
         
-        if not point or point[0].payload.get("user_id") != user_id:
+        user_id_str = str(user_id)
+        if not point or point[0].payload.get("user_id") != user_id_str:
             raise HTTPException(status_code=404, detail="Conversation not found")
         
         # Delete point
