@@ -7,7 +7,7 @@ services:
     startCommand: chmod +x start.sh && ./start.sh
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.16
+        value: 3.11.7
       - key: QDRANT_URL
         sync: false
       - key: QDRANT_API_KEY
