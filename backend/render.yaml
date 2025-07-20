@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: growdigo-ai-backend
+    env: python
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: chmod +x start.sh && ./start.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
+      - key: QDRANT_URL
+        sync: false
+      - key: QDRANT_API_KEY
+        sync: false 
