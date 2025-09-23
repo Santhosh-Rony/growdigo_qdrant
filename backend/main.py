@@ -20,6 +20,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://growdigo.netlify.app",
+        "https://growdigo.in",
+        "https://www.growdigo.in",
         "http://localhost:3000",
         "http://localhost:3001"
     ],
